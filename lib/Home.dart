@@ -11,7 +11,8 @@ class Home extends StatefulWidget {
 
 class _Home extends State<Home> {
   List<Map<String, dynamic>> dataList = [];
-  List<Map<String, dynamic>> filteredList = []; // Filtrelenmiş liste
+  List<Map<String, dynamic>> filteredList = [];
+  String filterLevel = '';
 
   @override
   void initState() {
@@ -25,8 +26,7 @@ class _Home extends State<Home> {
     if (response.statusCode == 200) {
       setState(() {
         dataList = List<Map<String, dynamic>>.from(json.decode(response.body));
-        filteredList =
-            dataList; // Filtrelenmiş liste, başlangıçta tüm verileri içerir
+        filteredList = dataList;
       });
     } else {
       throw Exception('Failed to load data from API');
@@ -36,7 +36,7 @@ class _Home extends State<Home> {
   Future<void> _deleteData(int index) async {
     setState(() {
       dataList.removeAt(index);
-      filteredList.removeAt(index); // Filtrelenmiş listeden de kaldır
+      filteredList.removeAt(index);
     });
   }
 
@@ -53,7 +53,7 @@ class _Home extends State<Home> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Düzenle'),
+          title: Text('Edit'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -95,6 +95,16 @@ class _Home extends State<Home> {
     );
   }
 
+  void _filterDataByLevel(String level) {
+    setState(() {
+      filterLevel = level;
+      filteredList = dataList
+          .where((item) =>
+              item['level'].toLowerCase() == filterLevel.toLowerCase())
+          .toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,57 +119,97 @@ class _Home extends State<Home> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: filteredList.length,
-        itemBuilder: (context, index) {
-          final item = filteredList[index];
-          return ListTile(
-            leading: Image.network(item['img']), // Resmi göster
-            title: Text(item['name']), // Digimon adını göster
-            subtitle: Text(item['level']), // Digimon seviyesini göster
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.edit),
-                  onPressed: () {
-                    _editData(index);
-                  },
+      body: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  _filterDataByLevel('rookie');
+                },
+                child: Text('Rookie'),
+                style: ElevatedButton.styleFrom(
+                  shape: CircleBorder(),
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Uyarı'),
-                          content:
-                              Text('Bu Kaydı silmek istediğinize emin misiniz'),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('İptal'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                _deleteData(index);
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('Sil'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+              ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _filterDataByLevel('champion');
+                },
+                child: Text('Champion'),
+                style: ElevatedButton.styleFrom(
+                  shape: CircleBorder(),
                 ),
-              ],
+              ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _filterDataByLevel('ultimate');
+                },
+                child: Text('Ultimate'),
+                style: ElevatedButton.styleFrom(
+                  shape: CircleBorder(),
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredList.length,
+              itemBuilder: (context, index) {
+                final item = filteredList[index];
+                return ListTile(
+                  leading: Image.network(item['img']),
+                  title: Text(item['name']),
+                  subtitle: Text(item['level']),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () {
+                          _editData(index);
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Uyarı'),
+                                content: Text(
+                                    'Kaydı silmek istediğinize emin misiniz?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Text('İptal'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      _deleteData(index);
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Text('Sil'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -210,10 +260,15 @@ class DataSearch extends SearchDelegate<String> {
                 item['name'].toLowerCase().contains(query.toLowerCase()))
             .toList();
 
+    final filteredListByLevel = suggestionList
+        .where(
+            (item) => item['level'].toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
     return ListView.builder(
-      itemCount: suggestionList.length,
+      itemCount: filteredListByLevel.length,
       itemBuilder: (context, index) {
-        final item = suggestionList[index];
+        final item = filteredListByLevel[index];
         return ListTile(
           title: Text(item['name']),
           leading: Image.network(item['img']),

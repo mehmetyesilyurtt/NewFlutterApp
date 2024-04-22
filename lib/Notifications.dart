@@ -7,7 +7,7 @@ class Notifications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Bildirimler',
       home: NotificationScreen(),
     );
@@ -64,7 +64,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bildirim'),
+        title: const Text('Bildirim'),
       ),
       body: ListView.builder(
         itemCount: records.length,

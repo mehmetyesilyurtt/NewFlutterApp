@@ -1,7 +1,6 @@
 import 'package:http/http.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/MainMenu.dart';
-import 'dart:convert';
 
 @override
 class Login extends StatefulWidget {
@@ -22,10 +21,6 @@ class _LoginScreenState extends State<Login> {
           Uri.parse('https://reqres.in/api/register'),
           body: {'email': email, 'password': password});
       if (response.statusCode == 200) {
-        var data = jsonDecode(response.body.toString());
-        print(data);
-        print('giriş başarılı');
-
         // ignore: use_build_context_synchronously
         Navigator.push(
           context,
@@ -37,8 +32,6 @@ class _LoginScreenState extends State<Login> {
           context,
           MaterialPageRoute(builder: (context) => MainMenu()),
         );
-        print(email);
-        print('Kullanıcı adi veya şifre yanlış');
       }
     } catch (e) {
       print(e.toString());

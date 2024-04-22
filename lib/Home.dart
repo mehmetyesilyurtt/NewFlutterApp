@@ -1,5 +1,3 @@
-// ignore_for_file: file_names
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -13,6 +11,7 @@ class Home extends StatefulWidget {
 
 class _Home extends State<Home> {
   List<Map<String, dynamic>> dataList = [];
+  List<Map<String, dynamic>> filteredList = []; // Filtrelenmiş liste
 
   @override
   void initState() {
@@ -21,11 +20,13 @@ class _Home extends State<Home> {
   }
 
   Future<void> _getDataFromAPI() async {
-    final response = await http.get(Uri.parse(
-        'https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=beng&api_key=REPLACE_ME'));
+    final response =
+        await http.get(Uri.parse('https://digimon-api.vercel.app/api/digimon'));
     if (response.statusCode == 200) {
       setState(() {
         dataList = List<Map<String, dynamic>>.from(json.decode(response.body));
+        filteredList =
+            dataList; // Filtrelenmiş liste, başlangıçta tüm verileri içerir
       });
     } else {
       throw Exception('Failed to load data from API');
@@ -35,15 +36,18 @@ class _Home extends State<Home> {
   Future<void> _deleteData(int index) async {
     setState(() {
       dataList.removeAt(index);
+      filteredList.removeAt(index); // Filtrelenmiş listeden de kaldır
     });
   }
 
   Future<void> _editData(int index) async {
-    final TextEditingController idController = TextEditingController();
-    final TextEditingController urlController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController levelController = TextEditingController();
+    final TextEditingController imgController = TextEditingController();
 
-    idController.text = dataList[index]['id'];
-    urlController.text = dataList[index]['url'];
+    nameController.text = dataList[index]['name'];
+    levelController.text = dataList[index]['level'];
+    imgController.text = dataList[index]['img'];
 
     await showDialog(
       context: context,
@@ -54,12 +58,16 @@ class _Home extends State<Home> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: idController,
-                decoration: InputDecoration(labelText: 'ID'),
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'NAME'),
               ),
               TextField(
-                controller: urlController,
-                decoration: InputDecoration(labelText: 'URL'),
+                controller: levelController,
+                decoration: InputDecoration(labelText: 'LEVEL'),
+              ),
+              TextField(
+                controller: imgController,
+                decoration: InputDecoration(labelText: 'IMG'),
               ),
             ],
           ),
@@ -73,8 +81,9 @@ class _Home extends State<Home> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  dataList[index]['id'] = idController.text;
-                  dataList[index]['url'] = urlController.text;
+                  dataList[index]['name'] = nameController.text;
+                  dataList[index]['level'] = levelController.text;
+                  dataList[index]['img'] = imgController.text;
                 });
                 Navigator.of(context).pop();
               },
@@ -91,14 +100,23 @@ class _Home extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Anasayfa'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showSearch(context: context, delegate: DataSearch(filteredList));
+            },
+          ),
+        ],
       ),
       body: ListView.builder(
-        itemCount: dataList.length,
+        itemCount: filteredList.length,
         itemBuilder: (context, index) {
-          final item = dataList[index];
+          final item = filteredList[index];
           return ListTile(
-            title: Text(item['id']),
-            subtitle: Text(item['url']),
+            leading: Image.network(item['img']), // Resmi göster
+            title: Text(item['name']), // Digimon adını göster
+            subtitle: Text(item['level']), // Digimon seviyesini göster
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -143,6 +161,69 @@ class _Home extends State<Home> {
           );
         },
       ),
+    );
+  }
+}
+
+class DataSearch extends SearchDelegate<String> {
+  final List<Map<String, dynamic>> dataList;
+
+  DataSearch(this.dataList);
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    // Actions for app bar
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      )
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    // Leading icon on the left of the app bar
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, '');
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    // Show some result based on the selection
+    return Text('Build result: $query');
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    // Show when someone searches for something
+    final suggestionList = query.isEmpty
+        ? dataList
+        : dataList
+            .where((item) =>
+                item['name'].toLowerCase().contains(query.toLowerCase()))
+            .toList();
+
+    return ListView.builder(
+      itemCount: suggestionList.length,
+      itemBuilder: (context, index) {
+        final item = suggestionList[index];
+        return ListTile(
+          title: Text(item['name']),
+          leading: Image.network(item['img']),
+          onTap: () {
+            // Close the search and pass back the selected result
+            close(context, item['name']);
+            close(context, item['img']);
+          },
+        );
+      },
     );
   }
 }

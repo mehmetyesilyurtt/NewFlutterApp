@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:my_app/EditDataPage.dart';
+
 class Home extends StatefulWidget {
-  Home({Key? key}) : super(key: key);
+  const Home({Key? key}) : super(key: key);
 
   @override
   _Home createState() => _Home();
@@ -12,7 +14,14 @@ class Home extends StatefulWidget {
 class _Home extends State<Home> {
   List<Map<String, dynamic>> dataList = [];
   List<Map<String, dynamic>> filteredList = [];
-  String filterLevel = '';
+  List<String> selectedLevels = [];
+  final List<String> levels = [
+    'Rookie',
+    'Champion',
+    'Ultimate',
+    'Mega',
+    'In Training'
+  ]; // Add more levels as needed
 
   @override
   void initState() {
@@ -95,13 +104,12 @@ class _Home extends State<Home> {
     );
   }
 
-  void _filterDataByLevel(String level) {
+  void _filterDataByLevel() {
     setState(() {
-      filterLevel = level;
-      filteredList = dataList
-          .where((item) =>
-              item['level'].toLowerCase() == filterLevel.toLowerCase())
-          .toList();
+      filteredList = dataList.where((item) {
+        if (selectedLevels.isEmpty) return true;
+        return selectedLevels.contains(item['level']);
+      }).toList();
     });
   }
 
@@ -121,39 +129,51 @@ class _Home extends State<Home> {
       ),
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  _filterDataByLevel('rookie');
+          ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('Filtrele'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: levels.map((level) {
+                        return CheckboxListTile(
+                          title: Text(level),
+                          value: selectedLevels.contains(level),
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value != null) {
+                                if (value) {
+                                  selectedLevels.add(level);
+                                } else {
+                                  selectedLevels.remove(level);
+                                }
+                                _filterDataByLevel();
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            selectedLevels.clear();
+                            _filterDataByLevel();
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        child: Text('Filtreyi Temizle'),
+                      ),
+                    ],
+                  );
                 },
-                child: Text('Rookie'),
-                style: ElevatedButton.styleFrom(
-                  shape: CircleBorder(),
-                ),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  _filterDataByLevel('champion');
-                },
-                child: Text('Champion'),
-                style: ElevatedButton.styleFrom(
-                  shape: CircleBorder(),
-                ),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  _filterDataByLevel('ultimate');
-                },
-                child: Text('Ultimate'),
-                style: ElevatedButton.styleFrom(
-                  shape: CircleBorder(),
-                ),
-              ),
-            ],
+              );
+            },
+            child: Text('Filtrele'),
           ),
           Expanded(
             child: ListView.builder(
@@ -273,9 +293,13 @@ class DataSearch extends SearchDelegate<String> {
           title: Text(item['name']),
           leading: Image.network(item['img']),
           onTap: () {
-            // Close the search and pass back the selected result
-            close(context, item['name']);
-            close(context, item['img']);
+            // Navigate to edit data page
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditDataPage(data: item),
+              ),
+            );
           },
         );
       },
